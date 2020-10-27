@@ -1,0 +1,5 @@
+*.wav
+virtualenv
+*.ipynb
+.nbgrader.log
+data/spectrogram
