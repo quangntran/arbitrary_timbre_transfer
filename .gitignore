@@ -3,3 +3,4 @@ virtualenv
 *.ipynb
 .nbgrader.log
 data/spectrogram
+*/autoencoder_vgg19
