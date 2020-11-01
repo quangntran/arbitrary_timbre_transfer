@@ -246,6 +246,60 @@ class Generator(nn.Module):
         code = self.enc(x)
         out = self.dec(code)
         return out 
+    
+# Discriminator
+
+class Flatten(nn.Module):
+    def forward(self, x):
+        return x.view(x.size()[0], -1)
+    
+class Discriminator(nn.Module):
+    def __init__(self, input_shape, nclass):
+        super(Discriminator,self).__init__()
+        c, h, w = input_shape
+        self.conv1 = nn.Conv2d(c,512,(h,3),1,0)
+        self.conv2 = nn.Conv2d(512,512,(1,9),(1,2),0)
+        self.conv3 = nn.Conv2d(512,512,(1,7),(1,2),0)
+        self.flatten = Flatten()
+
+        self.disc = nn.Linear(26112, 1) 
+        self.sigmoid = nn.Sigmoid()
+        self.style = nn.Linear(26112, nclass)
+    
+    def forward(self,x):
+        ftr = self.conv1(x)
+        ftr = self.conv2(ftr)
+        ftr = self.conv3(ftr)
+        ftr = self.flatten(ftr)
+        # get discriminator result (true/false)
+        ftr1 = self.disc(ftr)
+        disc = self.sigmoid(ftr1)
+        # get style classification
+        style = self.style(ftr)
+        return disc, style
+
+
+# Siamese network
+
+    
+class Siamese(nn.Module):
+    def __init__(self):
+        super(Siamese,self).__init__()
+        # vgg
+        # 224 x 224
+        self.conv1 = nn.Conv2d(1,256,(224,3),1,0)
+        self.conv2 = nn.Conv2d(256,256,(1,9),(1,2),0)
+        self.conv3 = nn.Conv2d(256,256,(1,7),(1,2),0)
+        self.flatten = Flatten()
+        self.linear = nn.Linear(13056, 128)
+
+    def forward(self, x):
+        out = self.conv1(x)
+        out = self.conv2(out)
+        out = self.conv3(out)
+        out = self.flatten(out)
+        out = self.linear(out)
+        return out
 
 if __name__ == "__main__":
     vgg19 = models.vgg19(pretrained=True)
