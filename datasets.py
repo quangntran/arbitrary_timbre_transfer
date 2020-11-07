@@ -68,4 +68,4 @@ class InputDataset(Dataset):
 if __name__ == "__main__":
     data = InputDataset(root='./data/spectrogram', instrument_list=['piano', 'harpsichord'])
     loader = DataLoader(data, batch_size=1, shuffle=True)
-    print(len(loader))
+    assert(len(loader) == 234)
