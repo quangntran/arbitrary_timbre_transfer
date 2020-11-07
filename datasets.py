@@ -16,11 +16,15 @@ class InputDataset(Dataset):
             self.path_info = {}
             for inst in instrument_list:
                 self.path_info[inst] = {'paths': [], 'size': 0}
-                path = os.path.join(root, inst)
-                npy_list = glob(f'{path}/*.npy')
-                self.path_info[inst]['paths'] += npy_list
-                self.path_info[inst]['size'] += len(npy_list)
-                self.size.append(len(npy_list))
+                mag_path = os.path.join(root, inst, 'mag')
+                phase_path = os.path.join(root, inst, 'phase')
+                npy_list_mag = glob(f'{mag_path}/*.npy')
+                npy_list_phase = glob(f'{phase_path}/*.npy')
+                if len(npy_list_mag) != len(npy_list_phase):
+                    raise RuntimeError(f'Number of magnitude files not equal number of phase files for insturment {inst}')
+                self.path_info[inst]['paths'] += npy_list_mag
+                self.path_info[inst]['size'] += len(npy_list_mag)
+                self.size.append(len(npy_list_mag))
             
             self.cumsum_size = np.array(self.size).cumsum()
             
@@ -68,4 +72,4 @@ class InputDataset(Dataset):
 if __name__ == "__main__":
     data = InputDataset(root='./data/spectrogram', instrument_list=['piano', 'harpsichord'])
     loader = DataLoader(data, batch_size=1, shuffle=True)
-    assert(len(loader) == 234)
+    print(len(loader))
