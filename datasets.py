@@ -3,14 +3,21 @@ import itertools
 import os
 from glob import glob
 import numpy as np 
+import random 
+from torch.autograd import Variable
+import torch 
+
+Tensor = torch.Tensor
+
 
 class InputDataset(Dataset): 
-        def __init__(self, root, instrument_list):
+        def __init__(self, root, instrument_list, unaligned=True):
             """
             """
             self.root = root
             self.instrument_list = instrument_list
             self.nclass = len(self.instrument_list) # number of instruments
+            self.unaligned= unaligned
             self.size = []
             # 
             self.path_info = {}
@@ -53,23 +60,37 @@ class InputDataset(Dataset):
             if idx < self.homo_threshold: # 2 iles from 1 instrument
                 inst_ind = self.cumsum_size.searchsorted(idx, side='right') # get index of the instrument
                 ind_in_inst = idx - self.cumsum_size[inst_ind-1] if inst_ind > 0 else idx
-                file_A = np.load(self.path_info[self.instrument_list[inst_ind]]['paths'][ind_in_inst%self.size[inst_ind]])
-                file_B = np.load(self.path_info[self.instrument_list[inst_ind]]['paths'][(ind_in_inst+1)%self.size[inst_ind]])
+                file_name_A = self.path_info[self.instrument_list[inst_ind]]['paths'][ind_in_inst%self.size[inst_ind]]
+                file_A = np.load(file_name_A)
+                if self.unaligned:
+                    file_name_B = self.path_info[self.instrument_list[inst_ind]]['paths'][random.randint(0, self.size[inst_ind]-1)]
+                    file_B = np.load(file_name_B)
+                else:
+                    file_name_B = self.path_info[self.instrument_list[inst_ind]]['paths'][(ind_in_inst+1)%self.size[inst_ind]]
+                    file_B = np.load(file_name)
                 a_ind, b_ind = inst_ind, inst_ind
                 
             else: # 2 files from different instruments
                 pair_ind = np.array(self.hete_thresholds).searchsorted(idx, side='right')
                 a_ind, b_ind = self.pairs[pair_ind]
                 ind_in_inst = idx - self.hete_thresholds[pair_ind-1] if pair_ind > 0 else idx - self.homo_threshold
-                file_A = np.load(self.path_info[self.instrument_list[a_ind]]['paths'][ind_in_inst % self.size[a_ind]])
-                file_B = np.load(self.path_info[self.instrument_list[b_ind]]['paths'][ind_in_inst % self.size[b_ind]])
-                
-            # concat 2 images
-            concat = np.stack((file_A, file_B)).shape
-            labels = [a_ind, b_ind] # styles of two files
-            return {'d': torch.tensor(concat), 's': torch.tensor(labels)}
+                file_name_A = self.path_info[self.instrument_list[a_ind]]['paths'][ind_in_inst % self.size[a_ind]]
+                file_A = np.load(file_name_A)
+                if self.unaligned:
+                    file_name_B = self.path_info[self.instrument_list[b_ind]]['paths'][random.randint(0,self.size[b_ind]-1)]
+                    file_B = np.load(file_name_B)
+                else:    
+                    file_name_B = self.path_info[self.instrument_list[b_ind]]['paths'][ind_in_inst % self.size[b_ind]]
+                    file_B = np.load(file_name_B)
+                    
+            file_A = np.expand_dims(file_A, axis=0) 
+            file_B = np.expand_dims(file_B, axis=0) 
+            return {'A': file_A, 'B': file_B, 'lab_A': a_ind, 'lab_B': b_ind}
+
+
 
 if __name__ == "__main__":
     data = InputDataset(root='./data/spectrogram', instrument_list=['piano', 'harpsichord'])
-    loader = DataLoader(data, batch_size=1, shuffle=True)
-    print(len(loader))
+    loader = DataLoader(data, batch_size=19, shuffle=True)
+    for i, batch in enumerate(loader):
+        print(Variable(batch["A"].type(Tensor)).size())
