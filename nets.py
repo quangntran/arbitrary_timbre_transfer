@@ -262,9 +262,9 @@ class Discriminator(nn.Module):
         self.conv3 = nn.Conv2d(512,512,(1,7),(1,2),0)
         self.flatten = Flatten()
 
-        self.disc = nn.Linear(26112, 1) 
+        self.disc = nn.Linear(30208, 1) 
         self.sigmoid = nn.Sigmoid()
-        self.style = nn.Linear(26112, nclass)
+        self.style = nn.Linear(30208, nclass)
     
     def forward(self,x):
         ftr = self.conv1(x)
